@@ -58,7 +58,7 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	auto context = nlNewContext();
 
 	DisjointSet ds(3 * m.nverts());
-	FOR(f, m.nverts()) {
+	FOR(f, m.nfacets()) {
 		int dim = flag[f] / 2;
 		FOR(fv, 3) ds.merge(dim * N + m.vert(f, fv), dim * N + m.vert(f, (fv + 1) % 3));
 	}
@@ -76,12 +76,13 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 		int dim = flag[f] / 2;
 		vec3 n = m.util.normal(f);
 		FOR(d, 3) {
+			if (dim == d) continue;
 			FOR(fv, 3) {
 				nlRowScaling(std::sqrt(n.norm()));
 				nlBegin(NL_ROW);
 				nlCoefficient(idmap[d * N + m.vert(f, fv)], 1);
 				nlCoefficient(idmap[d * N + m.vert(f, (fv + 1) % 3)], -1);
-				if (dim!=d) nlRightHandSide(m.points[m.vert(f, fv)][d] - m.points[m.vert(f, (fv + 1) % 3)][d]);
+				nlRightHandSide(m.points[m.vert(f, fv)][d] - m.points[m.vert(f, (fv + 1) % 3)][d]);
 				nlEnd(NL_ROW);
 			}
 		}
