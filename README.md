@@ -19,4 +19,4 @@ make -j
 ```sh
 ./fastpolycube ../boundary.obj ../labeling.txt result.obj
 ```
-For the support mesh format, see ultimaille. 
+For the supported mesh format, see ultimaille. 
