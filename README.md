@@ -13,5 +13,5 @@ make -j
 # Running the code :
 
 ```sh
-./fastpolcycube ../boundary.obj ../flagging.obj result.obj
+./fastpolycube ../boundary.obj ../labeling.txt result.obj
 ```
