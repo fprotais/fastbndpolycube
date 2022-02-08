@@ -8,7 +8,7 @@ using namespace UM;
 #define FOR(i, n) for(int i = 0; i < n; i++)
 
 
-void defo_example(Triangles& m, FacetAttribute<int>& flag) {
+void soft_deformation(Triangles& m, FacetAttribute<int>& flag) {
 
 	auto begin = std::chrono::steady_clock::now();
 	auto context = nlNewContext();
@@ -51,7 +51,7 @@ void defo_example(Triangles& m, FacetAttribute<int>& flag) {
 }
 
 
-void defo_example_snap(Triangles& m, FacetAttribute<int>& flag) {
+void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	int N = m.nverts();
 
 	auto begin = std::chrono::steady_clock::now();
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
 	}
 	ifs.close();
 	write_by_extension("flagging.geogram", m, { {},{{"flag", flag.ptr}},{} });
-	defo_example_snap(m, flag);
+	hard_deformation(m, flag);
 
 	write_by_extension(outputfile, m);
 
