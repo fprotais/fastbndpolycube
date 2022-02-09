@@ -1,3 +1,6 @@
 [submodule "ultimaille"]
 	path = ultimaille
 	url = https://github.com/ssloy/ultimaille
+[submodule "amgcl"]
+	path = amgcl
+	url = https://github.com/ddemidov/amgcl

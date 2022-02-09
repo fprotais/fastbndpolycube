@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(ultimaille)
 include_directories(ultimaille ultimaille/ext)
 
+add_subdirectory(amgcl)
+
 find_package(OpenMP)
 if(OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -23,8 +25,13 @@ endif()
 add_executable(fastpolycube main.cpp)
 target_link_libraries(fastpolycube ultimaille OpenNL_psm)
 
+add_executable(fastpolycube_amgcl main_w_amgcl.cpp)
+target_link_libraries(fastpolycube_amgcl ultimaille OpenNL_psm)
+
+target_link_libraries(fastpolycube_amgcl amgcl)
 
 if(OpenMP_CXX_FOUND)
     target_link_libraries(fastpolycube OpenMP::OpenMP_CXX)
+	target_link_libraries(fastpolycube_amgcl OpenMP::OpenMP_CXX)
 endif()
 

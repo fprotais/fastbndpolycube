@@ -4,6 +4,7 @@
 #include <ultimaille/all.h>
 #include <OpenNL_psm/OpenNL_psm.h>
 
+
 using namespace UM;
 #define FOR(i, n) for(int i = 0; i < n; i++)
 
@@ -68,17 +69,22 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 
 	nlSolverParameteri(NL_LEAST_SQUARES, NL_TRUE);
 	nlSolverParameteri(NL_NB_VARIABLES, NLint(nb_variables));
+	nlSolverParameteri(NL_PRECONDITIONER, NL_PRECOND_JACOBI);
+	//      nlSolverParameteri(NL_SYMMETRIC, NL_TRUE);
+	//nlSolverParameteri(NL_MAX_ITERATIONS, NLint(nlmaxiter));
+	//nlSolverParameterd(NL_THRESHOLD, nlthreshold);
 	//nlEnable(NL_VERBOSE);
+	
 	nlBegin(NL_SYSTEM);
 
 	nlBegin(NL_MATRIX);
 	FOR(f, m.nfacets()) {
 		int dim = flag[f] / 2;
-		vec3 n = m.util.normal(f);
+		double parea = std::sqrt(m.util.unsigned_area(f));
 		FOR(d, 3) {
 			if (dim == d) continue;
 			FOR(fv, 3) {
-				nlRowScaling(std::sqrt(n.norm()));
+				nlRowScaling(parea);
 				nlBegin(NL_ROW);
 				nlCoefficient(idmap[d * N + m.vert(f, fv)], 1);
 				nlCoefficient(idmap[d * N + m.vert(f, (fv + 1) % 3)], -1);
@@ -93,6 +99,7 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	auto buidlend = std::chrono::steady_clock::now();
 
 	nlSolve();
+
 	FOR(v, m.nverts()) FOR(d, 3) m.points[v][d] = nlGetVariable(idmap[d * N + v]);
 	nlDeleteContext(context);
 	auto solveend = std::chrono::steady_clock::now();
@@ -104,6 +111,8 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 
 }
 
+
+
 void hilbert_sort_mesh(Triangles& m) {
 	HilbertSort sort(*m.points.data);
 	std::vector<int> newid(m.nverts());
@@ -113,6 +122,7 @@ void hilbert_sort_mesh(Triangles& m) {
 	FOR(v, m.nverts()) m.points[newid[v]] = pts[v];
 	FOR(f, m.nfacets()) FOR(fv, 3) m.vert(f, fv) = newid[m.vert(f, fv)];
 }
+
 
 int main(int argc, char** argv) {
 	if (argc != 4) {
@@ -142,6 +152,7 @@ int main(int argc, char** argv) {
 	}
 	ifs.close();
 	write_by_extension("flagging.geogram", m, { {},{{"flag", flag.ptr}},{} });
+
 	hard_deformation(m, flag);
 
 	write_by_extension(outputfile, m);
