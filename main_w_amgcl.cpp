@@ -3,14 +3,25 @@
 #include <fstream>
 #include <ultimaille/all.h>
 #include <OpenNL_psm/OpenNL_psm.h>
-
 #include <amgcl/make_solver.hpp>
 #include <amgcl/solver/bicgstab.hpp>
+#include <amgcl/solver/cg.hpp>
 #include <amgcl/amg.hpp>
+#include <amgcl/preconditioner/dummy.hpp>
+#include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/coarsening/smoothed_aggregation.hpp>
+#include <amgcl/coarsening/ruge_stuben.hpp>
+#include <amgcl/coarsening/aggregation.hpp>
 #include <amgcl/relaxation/spai0.hpp>
+#include <amgcl/relaxation/ILUP.hpp>
+#include <amgcl/relaxation/Chebyshev.hpp>
+#include <amgcl/relaxation/damped_jacobi.hpp>
 #include <amgcl/adapter/crs_tuple.hpp>
 #include <amgcl/io/mm.hpp>
+
+
+#include <algorithm>
+#include <execution>
 
 using namespace UM;
 #define FOR(i, n) for(int i = 0; i < n; i++)
@@ -34,7 +45,7 @@ void triplet2CRS(
 	col.reserve(nb_variables);
 	val.reserve(nb_variables);
 
-	std::sort(trip.begin(), trip.end(), [](const triplet& a, const triplet& b) -> bool {
+	std::sort(std::execution::par_unseq, trip.begin(), trip.end(), [](const triplet& a, const triplet& b) -> bool {
 		if (a.i < b.i) return true;
 		if (a.i == b.i) return a.j < b.j;
 		return false;
@@ -81,7 +92,7 @@ void fast_hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 		int dim = flag[f] / 2;
 		//double parea = 1; std::sqrt(m.util.unsigned_area(f));
 		FOR(d, 3) {
-			//if (dim == d) continue;
+			if (dim == d) continue;
 			FOR(fv, 3) {
 				int i = idmap[d * N + m.vert(f, fv)];
 				int j = idmap[d * N + m.vert(f, (fv + 1) % 3)];
@@ -107,14 +118,22 @@ void fast_hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	typedef amgcl::backend::builtin<double> Backend;
 	typedef amgcl::make_solver<
 		// Use AMG as preconditioner:
-		amgcl::amg<
-		Backend,
-		amgcl::coarsening::smoothed_aggregation,
-		amgcl::relaxation::spai0
-		>,
+		amgcl::preconditioner::dummy<Backend>,
+		//amgcl::amg<
+		//Backend,
+		//amgcl::coarsening::smoothed_aggregation,
+		////amgcl::coarsening::ruge_stuben,
+		////amgcl::coarsening::aggregation,
+		////amgcl::relaxation::damped_jacobi
+		////amgcl::relaxation::ilup
+		////amgcl::relaxation::chebyshev
+		//amgcl::relaxation::spai0
+		//>,
 		// And BiCGStab as iterative solver:
-		amgcl::solver::bicgstab<Backend>
+		//amgcl::solver::bicgstab<Backend>
+		amgcl::solver::cg<Backend>
 	> Solver;
+
 
 	Solver solve(std::tie(nb_variables, ptr, col, val));
 	std::vector<double> x(nb_variables, 0.0);
@@ -134,15 +153,8 @@ void fast_hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 }
 
 
-void hilbert_sort_mesh(Triangles& m) {
-	HilbertSort sort(*m.points.data);
-	std::vector<int> newid(m.nverts());
-	std::iota(newid.begin(), newid.end(), 0);
-	sort.apply(newid);
-	std::vector<vec3> pts = *m.points.data;
-	FOR(v, m.nverts()) m.points[newid[v]] = pts[v];
-	FOR(f, m.nfacets()) FOR(fv, 3) m.vert(f, fv) = newid[m.vert(f, fv)];
-}
+
+
 
 
 int main(int argc, char** argv) {
@@ -159,7 +171,6 @@ int main(int argc, char** argv) {
 	read_by_extension(inputfile, m);
 	m.delete_isolated_vertices();
 
-	//hilbert_sort_mesh(m);
 
 	FacetAttribute<int> flag(m, 0);
 	std::ifstream ifs(flagfile);

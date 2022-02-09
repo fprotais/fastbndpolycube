@@ -71,8 +71,8 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	nlSolverParameteri(NL_NB_VARIABLES, NLint(nb_variables));
 	nlSolverParameteri(NL_PRECONDITIONER, NL_PRECOND_JACOBI);
 	//      nlSolverParameteri(NL_SYMMETRIC, NL_TRUE);
-	//nlSolverParameteri(NL_MAX_ITERATIONS, NLint(nlmaxiter));
-	//nlSolverParameterd(NL_THRESHOLD, nlthreshold);
+	//nlSolverParameteri(NL_MAX_ITERATIONS, NLint(100));
+	//nlSolverParameterd(NL_THRESHOLD, 1e-5);
 	//nlEnable(NL_VERBOSE);
 	
 	nlBegin(NL_SYSTEM);
@@ -124,7 +124,36 @@ void hilbert_sort_mesh(Triangles& m) {
 }
 
 
+void naive_flag_mesh(const Triangles& m, FacetAttribute<int>& flags) {
+	const std::array<vec3, 6> AXES = { {{1.,0.,0.},{-1.,0.,0.},{0.,1.,0.},{0.,-1.,0.},{0.,0.,1.},{0.,0.,-1.}} };
+	FOR(f, m.nfacets()) {
+		vec3 n = m.util.normal(f);
+		flags[f] = 0;
+		double best = AXES[0] * n;
+		FOR(i, 5) if (n * AXES[i + 1] > best) {
+			best = n * AXES[i + 1];
+			flags[f] = i + 1;
+		}
+	}
+}
+
+void fast() {
+	Triangles m;
+	read_by_extension("C:/fprotais/marchinghex/meshes/big.mesh", m);
+	FacetAttribute<int> flag(m);
+	naive_flag_mesh(m, flag);
+	write_by_extension("flagging.geogram", m, { {},{{"flag", flag.ptr}},{} });
+	write_by_extension("../bigmesh.obj", m, { });
+
+	std::ofstream ofs("../bigmesh.flag");
+	FOR(f, m.nfacets()) {
+		ofs << flag[f] << std::endl;
+	}
+	ofs.close();
+}
+
 int main(int argc, char** argv) {
+
 	if (argc != 4) {
 		std::cout << "Usage is: " << argv[0] << " triangularmesh.ext flagfile deformedoutput.ext" << std::endl;
 		return 1;
