@@ -23,7 +23,7 @@ void soft_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	nlBegin(NL_MATRIX);
 	FOR(f, m.nfacets()) {
 		int dim = flag[f] / 2;
-		vec3 n = m.util.normal(f);
+		vec3 n = Triangles::Facet(m,f).geom<Triangle3>().normal();
 		FOR(d, 3) {
 			FOR(fv, 3) {
 				nlRowScaling(std::sqrt(n.norm()));
@@ -76,7 +76,7 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 	nlBegin(NL_MATRIX);
 	FOR(f, m.nfacets()) {
 		int dim = flag[f] / 2;
-		double parea = std::sqrt(m.util.unsigned_area(f));
+		double parea = std::sqrt(Triangles::Facet(m,f).geom<Triangle3>().unsigned_area());
 		FOR(d, 3) {
 			if (dim == d) continue;
 			FOR(fv, 3) {
@@ -108,10 +108,10 @@ void hard_deformation(Triangles& m, FacetAttribute<int>& flag) {
 }
 
 
-void naive_flag_mesh(const Triangles& m, FacetAttribute<int>& flags) {
+void naive_flag_mesh(Triangles& m, FacetAttribute<int>& flags) {
 	const std::array<vec3, 6> AXES = { {{1.,0.,0.},{-1.,0.,0.},{0.,1.,0.},{0.,-1.,0.},{0.,0.,1.},{0.,0.,-1.}} };
 	FOR(f, m.nfacets()) {
-		vec3 n = m.util.normal(f);
+		vec3 n = Triangles::Facet(m,f).geom<Triangle3>().normal();
 		flags[f] = 0;
 		double best = AXES[0] * n;
 		FOR(i, 5) if (n * AXES[i + 1] > best) {
